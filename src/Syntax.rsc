@@ -39,7 +39,7 @@ syntax Expr
   > non-assoc (Expr "==" Expr | Expr "!=" Expr)
   > left Expr "&&" Expr
   > left Expr "||" Expr
-  >  Id \ "true" \ "false" // true/false are reserved keywords (only for booleans).
+  > Id \ "true" \ "false" // true/false are reserved keywords (only for booleans).
   | Bool
   | Int
   ;
