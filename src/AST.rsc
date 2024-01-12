@@ -41,5 +41,5 @@ data AId(loc src = |tmp:///|)
   = id(str name);
 
 data AType(loc src = |tmp:///|)
-  = strType(str strType)
+  = \type(str typeName)
   ;
