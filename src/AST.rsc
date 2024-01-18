@@ -12,9 +12,10 @@ data AForm(loc src = |tmp:///|)
   ; 
 
 data AQuestion(loc src = |tmp:///|)
-  = GeneralQuestion(AId qId, AType qType, list[AExpr] qExpr, str qText)
+  = GeneralQuestion(AId qId, AType qType, str qText)
+  | ComputedQuestion(AId qId, AType qType, AExpr qExpr, str qText)
   | IfThenElse(AExpr condition, list[AQuestion] ifPart, list[AQuestion] elsePart)
-  ; 
+  ;
 
 data AExpr(loc src = |tmp:///|)
   = parentheses(AExpr expr)

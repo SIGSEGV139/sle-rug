@@ -25,10 +25,10 @@ AForm cst2ast(start[Form] sf) {
 default AQuestion cst2ast(Question q) {
   switch (q) {
     case (Question)`<Str name> <Id i> : <Type t>`:
-      return GeneralQuestion(id("<i>", src = i.src), cst2ast(t), [], "<name>", src = q.src);
+      return GeneralQuestion(id("<i>", src = i.src), cst2ast(t), "<name>", src = q.src);
 
     case (Question)`<Str name> <Id i> : <Type t> = <Expr e>`:
-      return GeneralQuestion(id("<i>", src = i.src), cst2ast(t), [cst2ast(e)], "<name>", src = q.src);
+      return ComputedQuestion(id("<i>", src = i.src), cst2ast(t), cst2ast(e), "<name>", src = q.src);
 
     case (Question)`if ( <Expr expr> ) { <Question* x0> }`:
       return IfThenElse(cst2ast(expr), [cst2ast(q2) | q2 <- x0], [], src = q.src);
@@ -37,13 +37,13 @@ default AQuestion cst2ast(Question q) {
       return IfThenElse(cst2ast(expr), [cst2ast(q2) | q2 <- x0], [cst2ast(q2) | q2 <- x1], src = q.src);
 
     default:
-      throw "Not yet implemented <q>";
+      throw "Unhandled question <q>";
   }
 }
 
 AExpr cst2ast(Expr e) {
   switch (e) {
-    case (Expr)`(<Expr x>)`: return cst2ast(x);
+    case (Expr)`(<Expr x>)`: return parentheses(cst2ast(x), src = e.src);
     case (Expr)`!<Expr x>` : return not(cst2ast(x), src = e.src);
     case (Expr)`<Expr x1> / <Expr x2>` : return divide(cst2ast(x1),cst2ast(x2), src = e.src);
     case (Expr)`<Expr x1> * <Expr x2>` : return multiply(cst2ast(x1),cst2ast(x2), src = e.src);
@@ -68,8 +68,8 @@ AExpr cst2ast(Expr e) {
 default AType cst2ast(Type t) {
   switch(t) {
     case (Type)`integer`: return \type("integer", src = t.src);
-  	case (Type)`boolean`: return \type("boolean", src = t.src);
+    case (Type)`boolean`: return \type("boolean", src = t.src);
   
-    default: throw "Not yet implemented <t>";   
+    default: throw "Unhandled type <t>";   
   }
 }

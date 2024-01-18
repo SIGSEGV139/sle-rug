@@ -30,5 +30,10 @@ Use uses(AForm f) {
 }
 
 Def defs(AForm f) {
-  return {<id.name, id.src> | /GeneralQuestion(AId id, AType _, list[AExpr] _, str _) := f}; 
+  Def result = {};
+  visit(f) {
+    case GeneralQuestion(AId id, _, _): result += {<id.name, id.src>};
+    case ComputedQuestion(AId id, _, _ , _): result += {<id.name, id.src>};
+  }; 
+  return result;  
 }
