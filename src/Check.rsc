@@ -122,12 +122,12 @@ set[Message] check(AExpr e, TEnv tenv, UseDef useDef) {
     case multiply(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tint(), e.src);
     case add(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tint(), e.src);
     case subtract(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tint(), e.src);
-    case less(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tbool(), e.src);
-    case gtr(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tbool(), e.src);
-    case leq(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tbool(), e.src);
-    case geq(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tbool(), e.src);
-    case eq(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tbool(), e.src);
-    case neq(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tbool(), e.src);
+    case less(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tint(), e.src);
+    case gtr(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tint(), e.src);
+    case leq(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tint(), e.src);
+    case geq(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tint(), e.src);
+    case eq(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tint(), e.src);
+    case neq(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tint(), e.src);
     case and(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tbool(), e.src);
     case or(AExpr expr1, AExpr expr2): msgs += checkOperandTypes(expr1, expr2, tenv, useDef, tbool(), e.src); 
   }

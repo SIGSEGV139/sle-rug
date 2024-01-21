@@ -3,6 +3,7 @@ module Transform
 import Syntax;
 import Resolve;
 import AST;
+import CST2AST;
 
 /* 
  * Transforming QL forms
@@ -29,7 +30,34 @@ import AST;
  */
  
 AForm flatten(AForm f) {
-  return f; 
+  list[AQuestion] aqs = [];
+	for(question <- f.questions) {
+		aqs += flatten(question, boolean("true"));
+	}
+	return form(f.name, aqs);
+}
+
+list[AQuestion] flatten(AQuestion question, AExpr condition) {
+  list[AQuestion] flattenedQuestions = [];
+  switch(question) {
+    case GeneralQuestion(_, _, _): {
+      flattenedQuestions += IfThenElse(condition, [question], []);
+    }
+    case ComputedQuestion(_, _, _, _): {
+      flattenedQuestions += IfThenElse(condition, [question], []);
+    }
+    case IfThenElse(AExpr expr, list[AQuestion] ifqs, list[AQuestion] elseqs): {
+      for(q <- ifqs) {
+        flattenedQuestions += flatten(q, and(condition, expr));
+      }
+      if(elseqs != []) {
+        for(q <- elseqs) { 
+          flattenedQuestions += flatten(q, and(condition, not(expr)));
+        }
+      }
+    }
+  }
+  return flattenedQuestions;
 }
 
 /* Rename refactoring:
@@ -40,7 +68,25 @@ AForm flatten(AForm f) {
  */
  
 start[Form] rename(start[Form] f, loc useOrDef, str newName, UseDef useDef) {
-   return f; 
+  set[loc] locations = {};
+  
+  if(useOrDef in useDef<0>) {
+    if(<useOrDef, loc def> <- useDef) {
+      locations += { def };
+      locations += { u | <loc u, def> <- useDef };
+    }
+  } else {
+    locations += { useOrDef };
+    locations += { u | <loc u, useOrDef> <- useDef };
+  }
+   
+  if(locations == {}) {
+    return f;
+  } 
+  
+  return visit (f) {
+    case Id x => [Id]newName when x.src in locations
+  }
 } 
  
  

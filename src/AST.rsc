@@ -37,7 +37,6 @@ data AExpr(loc src = |tmp:///|)
   | boolean(str boolValue)
   ;
 
-
 data AId(loc src = |tmp:///|)
   = id(str name);
 
