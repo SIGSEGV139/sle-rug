@@ -28,11 +28,11 @@ alias TEnv = rel[loc def, str name, str label, Type \type];
 TEnv collect(AForm f) {
   TEnv tenv = {};
   visit(f) {
-    case GeneralQuestion(AId id, AType qType, str label, src = qLoc):
-      tenv += {<qLoc, id.name, label, convertA2Ttype(qType)>};
+    case GeneralQuestion(AId id, AType qType, str label):
+      tenv += {<id.src, id.name, label, convertA2Ttype(qType)>};
 
-    case ComputedQuestion(AId id, AType qType, _, str label, src = qLoc):
-      tenv += {<qLoc, id.name, label, convertA2Ttype(qType)>};
+    case ComputedQuestion(AId id, AType qType, _, str label):
+      tenv += {<id.src, id.name, label, convertA2Ttype(qType)>};
   }
   return tenv;
 }
@@ -48,12 +48,12 @@ set[Message] check(AQuestion q, TEnv tenv, UseDef useDef) {
   set[Message] msgs = {};
 
   switch (q) {
-    case GeneralQuestion(AId id, AType qType, str qLabel, src = loc1):
-      msgs += checkDuplicateNameAndLabel(id, qType, qLabel, loc1, tenv);
+    case GeneralQuestion(AId id, AType qType, str qLabel):
+      msgs += checkDuplicateNameAndLabel(id, qType, qLabel, tenv);
     
-    case ComputedQuestion(AId id, AType qType, AExpr qExpr, str qLabel, src = loc1):
+    case ComputedQuestion(AId id, AType qType, AExpr qExpr, str qLabel):
     {
-      msgs += checkDuplicateNameAndLabel(id, qType, qLabel, loc1, tenv);
+      msgs += checkDuplicateNameAndLabel(id, qType, qLabel, tenv);
 
       exprEvaluationMsgs = check(qExpr, tenv, useDef);
       msgs += exprEvaluationMsgs;
@@ -80,15 +80,17 @@ set[Message] check(AQuestion q, TEnv tenv, UseDef useDef) {
   return msgs; 
 }
 
-set[Message] checkDuplicateNameAndLabel(AId id, AType qType, str qLabel, loc loc1, TEnv tenv) {
+set[Message] checkDuplicateNameAndLabel(AId id, AType qType, str qLabel, TEnv tenv) {
   set[Message] msgs = {};
   set[str] encounteredLabels = {};
 
   for (<loc loc2, str name, str label, Type typee> <- tenv) {
-    if (loc1 != loc2 && name == id.name && convertA2Ttype(qType) != typee) {
+    if (id.src != loc2 && name == id.name && convertA2Ttype(qType) != typee) {
       msgs += { error("Questions with the same name and different types!", id.src) };
     }
-    encounteredLabels += label;
+    if (id.src != loc2) {
+      encounteredLabels += label;
+    }
   }
 
   if (qLabel in encounteredLabels) {
@@ -143,7 +145,7 @@ set[Message] checkOperandTypes(AExpr lhs, AExpr rhs, TEnv tenv, UseDef useDef, T
   
   typeLhs = typeOf(lhs, tenv, useDef);
   typeRhs = typeOf(rhs, tenv, useDef);
-
+  
   if (typeLhs != t && typeLhs != tunknown()) {
     msgs += { error("Incompatible type!", lhs.src) };
   }
@@ -160,9 +162,10 @@ set[Message] checkOperandTypes(AExpr lhs, AExpr rhs, TEnv tenv, UseDef useDef, T
 Type typeOf(AExpr e, TEnv tenv, UseDef useDef) {
   switch (e) {
     case ref(id(_, src = loc u)):  
-      if (<u, loc d> <- useDef, <d, x, _, Type t> <- tenv) {
+      if (<u, loc d> <- useDef, <d, _, _, Type t> <- tenv) {
         return t;
       }
+    case parentheses(AExpr expr): return typeOf(expr, tenv, useDef);
     case not(_): return tbool();
     case divide(_, _): return tint();
     case multiply(_, _): return tint();
@@ -178,6 +181,7 @@ Type typeOf(AExpr e, TEnv tenv, UseDef useDef) {
     case or(_, _): return tbool();
     case integer(_): return tint();
     case boolean(_): return tbool();
+    case string(_): return tstr();
   }
   return tunknown(); 
 }

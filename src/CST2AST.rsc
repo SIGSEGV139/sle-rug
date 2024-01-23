@@ -60,7 +60,7 @@ AExpr cst2ast(Expr e) {
     case (Expr)`<Id x>`: return ref(id("<x>", src=x.src), src=x.src);
     case (Expr)`<Int n>` : return integer(toInt("<n>"), src = n.src);
     case (Expr)`<Bool b>` : return boolean("<b>", src = b.src);
-
+    case (Expr)`<Str s>`: return string("<s>", src = s.src);
     default: throw "Unhandled expression: <e>";
   }
 }
@@ -69,7 +69,7 @@ default AType cst2ast(Type t) {
   switch(t) {
     case (Type)`integer`: return \type("integer", src = t.src);
     case (Type)`boolean`: return \type("boolean", src = t.src);
-  
+    case (Type)`string`: return \type("string", src = t.src);
     default: throw "Unhandled type <t>";   
   }
 }

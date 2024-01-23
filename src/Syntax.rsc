@@ -47,17 +47,19 @@ syntax Expr
   > Id \ "true" \ "false" // true/false are reserved keywords (only for booleans).
   | Bool
   | Int
+  | Str
   ;
 
 // int, bool
 syntax Type 
   = "integer"
   | "boolean"
+  | "string"
   ;
 
 // Examples: "Did you enter a loan?" , "Is the number between 15 and 17" , etc.
 lexical Str 
-  = "\"" ([a-zA-Z0-9_]*|" ")* [?:]? "\""
+  = "\"" ([a-zA-Z0-9\ ])* [? | :]? "\""
   ;
 
 lexical Int 

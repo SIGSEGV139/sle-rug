@@ -35,6 +35,7 @@ data AExpr(loc src = |tmp:///|)
   | ref(AId id)
   | integer(int n)
   | boolean(str boolValue)
+  | string(str strValue)
   ;
 
 data AId(loc src = |tmp:///|)
