@@ -14,6 +14,7 @@ start syntax Form
 syntax Question 
   = GeneralQuestion
   | ComputedQuestion
+  | IfThen
   | IfThenElse
   ;
 
@@ -28,9 +29,12 @@ syntax ComputedQuestion
   ;
 
 // Example: if (privateDebt > 0) {"Did you sell a house in 2010?" hasSoldHouse: boolean}
-// "else" block is optional
+syntax IfThen
+  = "if" "(" Expr expression ")" "{" Question* questions "}"
+  ;
+
 syntax IfThenElse
-  = "if" "(" Expr expression ")" "{" Question* questions "}" ( "else" "{" Question* questions "}" )?
+  = "if" "(" Expr expression ")" "{" Question* questions "}" "else" "{" Question* questions "}"
   ;
 
 // TODO: +, -, *, /, &&, ||, !, >, <, <=, >=, ==, !=, literals (bool, int, str)

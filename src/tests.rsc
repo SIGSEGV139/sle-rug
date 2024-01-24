@@ -12,18 +12,14 @@ import vis::Text;
 
 // SYNTAX TEST
 void testsyn() {
-    str fileContent = readFile(|cwd:///examples/binary.myql|);
-    Tree t = parse(#start[Form], fileContent);
-    println("Tree: ");
-    println(t);
+    Tree parsedTree = parse(#start[Form], readFile(|cwd:///examples/binary.myql|));
+    println(parsedTree);
 }
 
 // AST TEST
 void testast() {
-    str fileContent = readFile(|cwd:///examples/binary.myql|);
-    AForm t = cst2ast(parse(#start[Form], fileContent));
-    println("AForm: ");
-    println(t);
+    AForm aForm = cst2ast(parse(#start[Form], readFile(|cwd:///examples/binary.myql|)));
+    println(aForm);
 }
 
 // RESOLVE TEST
@@ -47,12 +43,10 @@ void testcheck() {
 }
 
 set[Message] testhelper(str file) {
-    Tree parsed = parse(#start[Form], file);
-    AForm ast = cst2ast(parsed);
-    RefGraph g = resolve(ast);
+    AForm ast = cst2ast(parse(#start[Form], file));
+    RefGraph refGraph = resolve(ast);
     TEnv tenv = collect(ast);
-    set[Message] msgs = check(ast, tenv, g.useDef);
-    return msgs;
+    return check(ast, tenv, refGraph.useDef);
 }
 
 // EVAL TEST
@@ -77,34 +71,63 @@ void testeval() {
     res = testEval(readFile(|cwd:///examples/test.myql|), 
                   ("sellingPrice": 123456, 
                    "privateDebt": 3456,
-                   "hasSoldHouse": false
+                   "hasSoldHouse": !(true || (true && false))
                    ));
     assert res["valueResidue"] == vint(0);
     assert res["possibleSellingPrice"] == vint(100);
 }
 
 Value getVValue(value v) {
-  switch (v) {
-    case int n: return vint(n);
-    case bool b: return vbool(b);
-    case str s: return vstr(s);
-  }
-  throw "Unsupported value <v>";
+    switch (v) {
+        case int n: return vint(n);
+        case bool b: return vbool(b);
+        case str s: return vstr(s);
+    }
+    throw "Unsupported value <v>";
 }
 
 VEnv testEval(str fileContent, map[str, value] inputs) {
     AForm ast = cst2ast(parse(#start[Form], fileContent));
     TEnv tenv = collect(ast);
-    
-    println("pre-eval");
+    print("initial: ");
     VEnv env = initialEnv(ast);
     println(env);
-
-    for(k <- inputs) {
-        Input i = input(k, getVValue(inputs[k]));
+    for(j <- inputs) {
+        Input i = input(j, getVValue(inputs[j]));
         env = eval(ast, i, env);
     }
-    println("post-eval");
+    print("final: ");
     println(env);
     return env;
+}
+
+//TRANSFORM TEST
+void testtransform() {
+    AForm flat = flatten(cst2ast(parse(#start[Form], readFile(|cwd:///examples/binary.myql|))));
+    printFlatForm(flat);
+
+    Tree parsedTree = parse(#start[Form], readFile(|cwd:///examples/test.myql|));
+    hasSoldHouse_loc = |unknown:///|(264,12,<14,6>,<14,18>);
+    start[Form] newForm = rename(parsedTree, hasSoldHouse_loc, "PIZZA", resolve(flat).useDef);
+    println(newForm);
+}
+
+void printFlatForm(AForm flat) {
+    for (AQuestion q <- flat.questions) {
+        if (q is IfThen) {
+            AExpr e = q.condition;
+            list[AQuestion] innerQuestions = q.ifPart;
+            if (size(innerQuestions) > 0) {
+                AQuestion innerQ = innerQuestions[0];
+                switch (innerQ) {
+                    case GeneralQuestion(id, _, _):
+                        println("GeneralQuestion \"<id.name>\": <e>\n");
+                    case ComputedQuestion(id, _, _, _):
+                        println("ComputedQuestion \"<id.name>\": <e>\n");
+                    default:
+                        throw "Unexpected question type!";
+                }
+            }
+        }
+    }
 }

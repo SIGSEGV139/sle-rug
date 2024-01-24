@@ -31,7 +31,7 @@ default AQuestion cst2ast(Question q) {
       return ComputedQuestion(id("<i>", src = i.src), cst2ast(t), cst2ast(e), "<name>", src = q.src);
 
     case (Question)`if ( <Expr expr> ) { <Question* x0> }`:
-      return IfThenElse(cst2ast(expr), [cst2ast(q2) | q2 <- x0], [], src = q.src);
+      return IfThen(cst2ast(expr), [cst2ast(q2) | q2 <- x0], src = q.src);
 
     case (Question)`if ( <Expr expr> ) { <Question* x0> } else { <Question* x1>}`:
       return IfThenElse(cst2ast(expr), [cst2ast(q2) | q2 <- x0], [cst2ast(q2) | q2 <- x1], src = q.src);

@@ -14,6 +14,7 @@ data AForm(loc src = |tmp:///|)
 data AQuestion(loc src = |tmp:///|)
   = GeneralQuestion(AId qId, AType qType, str qText)
   | ComputedQuestion(AId qId, AType qType, AExpr qExpr, str qText)
+  | IfThen(AExpr condition, list[AQuestion] ifPart)
   | IfThenElse(AExpr condition, list[AQuestion] ifPart, list[AQuestion] elsePart)
   ;
 

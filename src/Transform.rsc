@@ -4,6 +4,7 @@ import Syntax;
 import Resolve;
 import AST;
 import CST2AST;
+import ParseTree;
 
 /* 
  * Transforming QL forms
@@ -41,19 +42,22 @@ list[AQuestion] flatten(AQuestion question, AExpr condition) {
   list[AQuestion] flattenedQuestions = [];
   switch(question) {
     case GeneralQuestion(_, _, _): {
-      flattenedQuestions += IfThenElse(condition, [question], []);
+      flattenedQuestions += IfThen(condition, [question]);
     }
     case ComputedQuestion(_, _, _, _): {
-      flattenedQuestions += IfThenElse(condition, [question], []);
+      flattenedQuestions += IfThen(condition, [question]);
+    }
+    case IfThen(AExpr expr, list[AQuestion] ifqs): {
+       for(q <- ifqs) {
+        flattenedQuestions += flatten(q, and(condition, expr));
+      }
     }
     case IfThenElse(AExpr expr, list[AQuestion] ifqs, list[AQuestion] elseqs): {
       for(q <- ifqs) {
         flattenedQuestions += flatten(q, and(condition, expr));
       }
-      if(elseqs != []) {
-        for(q <- elseqs) { 
-          flattenedQuestions += flatten(q, and(condition, not(expr)));
-        }
+      for(q <- elseqs) { 
+        flattenedQuestions += flatten(q, and(condition, not(expr)));
       }
     }
   }
@@ -82,7 +86,7 @@ start[Form] rename(start[Form] f, loc useOrDef, str newName, UseDef useDef) {
    
   if(locations == {}) {
     return f;
-  } 
+  }
   
   return visit (f) {
     case Id x => [Id]newName when x.src in locations

@@ -57,7 +57,7 @@ VEnv eval(AForm f, Input inp, VEnv venv) {
 }
 
 VEnv evalOnce(AForm f, Input inp, VEnv venv) {
-  for (AQuestion q2 <- f.questions){
+  for (AQuestion q2 <- f.questions) {
     venv = eval(q2,inp,venv);
   }
   return (venv);
@@ -72,16 +72,21 @@ VEnv eval(AQuestion q, Input inp, VEnv venv) {
     case  ComputedQuestion(AId qid, AType _, AExpr e, str _): {
       venv += (qid.name: eval(e, venv));
     }
+    case IfThen(AExpr condition, list[AQuestion] ifPart): {
+      if (eval(condition, venv).b) {
+        for (AQuestion q <- ifPart) {
+          venv += eval(q, inp, venv);
+        }
+      }
+    }
     case IfThenElse(AExpr condition, list[AQuestion] ifPart, list[AQuestion] elsePart): {
       if (eval(condition, venv).b) {
         for (AQuestion q <- ifPart) {
           venv += eval(q, inp, venv);
         }
       } else {
-        if (elsePart != []) {
-          for (AQuestion q <- elsePart) {
-            venv += eval(q, inp, venv);
-          }
+        for (AQuestion q <- elsePart) {
+          venv += eval(q, inp, venv);
         }
       }
     } 

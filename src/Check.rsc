@@ -63,6 +63,18 @@ set[Message] check(AQuestion q, TEnv tenv, UseDef useDef) {
       }
     }
     
+    case IfThen(AExpr condition, list[AQuestion] ifPart):
+    {
+      exprEvaluationMsgs = check(condition, tenv, useDef);
+      msgs += exprEvaluationMsgs;
+    
+      if (exprEvaluationMsgs == {} && typeOf(condition, tenv, useDef) != tbool()) {
+        msgs += {error("Guard value does not evaluate to boolean!", condition.src)};
+      }
+
+      msgs += checkCondParts(ifPart, tenv, useDef);
+    }
+
     case IfThenElse(AExpr condition, list[AQuestion] ifPart, list[AQuestion] elsePart): 
     {
       exprEvaluationMsgs = check(condition, tenv, useDef);
