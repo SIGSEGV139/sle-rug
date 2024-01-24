@@ -7,6 +7,7 @@ import Resolve;
 import Check;
 import Transform;
 import Eval;
+import Compile;
 import IO;
 import vis::Text;
 
@@ -130,4 +131,11 @@ void printFlatForm(AForm flat) {
             }
         }
     }
+}
+
+// COMPILE TEST
+void testcompile() {
+    Tree parsedTree = parse(#start[Form], |project://sle-rug/examples/tax.myql|);
+    AForm f = cst2ast(parsedTree);
+    compile(f);
 }
