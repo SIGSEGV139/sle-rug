@@ -26,6 +26,6 @@ form taxOfficeExample {
 
   if (privateDebt > 0) {
     "A small loan of a million dollars"
-       hasMaintLoan: boolean
+       hasMaintLoan2: boolean
   }
 }

@@ -9,7 +9,7 @@ import lang::html::IO;
 /*
  * Implement a compiler for QL to HTML and Javascript
  *
- * - assume the form is  type- and name-correct
+ * - assume the form is type- and name-correct
  * - separate the compiler in two parts form2html and form2js producing 2 files
  * - use string templates to generate Javascript
  * - use the HTMLElement type and the `str writeHTMLString(HTMLElement x)` function to format to string
@@ -24,102 +24,235 @@ void compile(AForm f) {
   writeFile(f.src[extension="html"].top, writeHTMLString(form2html(f)));
 }
 
+//HTML PART
+
+str convertExprToString(AExpr expr) {
+  switch (expr) {
+    case parentheses(AExpr arg): return "(" + convertExprToString(arg) + ")";
+    case not(AExpr arg): return "!" + convertExprToString(arg);
+    case multiply(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "*" + convertExprToString(rhs);
+    case divide(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "/" + convertExprToString(rhs);
+    case add(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "+" + convertExprToString(rhs);
+    case subtract(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "-" + convertExprToString(rhs);
+    case gtr(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "\>" + convertExprToString(rhs);
+    case less(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "\<" + convertExprToString(rhs);
+    case geq(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "\>=" + convertExprToString(rhs);
+    case leq(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "\<=" + convertExprToString(rhs);
+    case neq(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "!=" + convertExprToString(rhs);
+    case eq(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "==" + convertExprToString(rhs);
+    case and(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "&&" + convertExprToString(rhs);
+    case or(AExpr lhs, AExpr rhs): return convertExprToString(lhs) + "||" + convertExprToString(rhs);
+    case ref(id(str x)): return x;
+    case boolean(str boolean): return "<boolean>";
+    case integer(int integer): return "<integer>";
+    case string(str string): return "<string>";
+    default: return "";
+  }
+}
+
 HTMLElement form2html(AForm f) {
-   HTMLElement htmlElement = html([
+  list[HTMLElement] htmlquestion = [];
+  for (AQuestion q <- f.questions) {
+    htmlquestion += q2html(q);
+  }
+
+  HTMLElement submit = button([text("Submit")], \type = "submit");
+  HTMLElement metaElem = meta(\name = "viewport", \content = "width=device-width, initial-scale=1.0");
+
+  HTMLElement htmlElem =
+  html([
     head([
-      title("QL Form")
+      title([text(f.name)]),
+      metaElem,
+      script([], src=f.src[extension="js"].file)
     ]),
     body([
-      div([
-        h1(text(f.name)), 
-        questions2HTML(f.questions) 
-      ])
+      form(htmlquestion),
+      submit
     ])
   ]);
-
-  return htmlElement;
+  htmlElem.\lang = "en";
+  return htmlElem;
 }
 
-str expression2str(AExpr expr){
-  switch(expr){
-    case  parentheses(AExpr expr) :             return ("(" + expression2str(expr) + ")"); 
-    case  not(AExpr expr) :                     return ("!" + expression2str(expr));
-    case  divide(AExpr expr1, AExpr expr2) :    return (expression2str(expr1) + "/" + expression2str(expr2));
-    case  multiply(AExpr expr1, AExpr expr2):   return (expression2str(expr1) + "*" + expression2str(expr2));
-    case  add(AExpr expr1, AExpr expr2):        return (expression2str(expr1) + "+" + expression2str(expr2));
-    case  subtract(AExpr expr1, AExpr expr2):   return (expression2str(expr1) + "-" + expression2str(expr2));
-    case  less(AExpr expr1, AExpr expr2):       return (expression2str(expr1) + "<" + expression2str(expr2));
-    case  gtr(AExpr expr1, AExpr expr2):        return (expression2str(expr1) + ">" + expression2str(expr2));
-    case  leq(AExpr expr1, AExpr expr2):        return (expression2str(expr1) + "<=" + expression2str(expr2));
-    case  geq(AExpr expr1, AExpr expr2):        return (expression2str(expr1) + ">=" + expression2str(expr2));
-    case  eq(AExpr expr1, AExpr expr2):         return (expression2str(expr1) + "==" + expression2str(expr2));
-    case  neq(AExpr expr1, AExpr expr2):        return (expression2str(expr1) + "!=" + expression2str(expr2));
-    case  and(AExpr expr1, AExpr expr2):        return (expression2str(expr1) + "&&" + expression2str(expr2));
-    case  or(AExpr expr1, AExpr expr2):         return (expression2str(expr1) + "||" + expression2str(expr2));
-    case  ref(AId id) :                         return toString(id);
-    case  integer(int n) :                      return toString(n);
-    case  boolean(str boolValue) :              return boolValue;
-    case  string(str strValue) :                return strValue;
+list[HTMLElement] stdQ2HTML(str questionType, AQuestion q) {
+  list[HTMLElement] htmlElements = [
+    label([text(q.qText)], \for = q.qId.name), 
+    br()
+  ];
+
+  str inputType = "";
+  switch (q.qType.typeName) {
+    case "string": inputType = "text";
+    case "boolean": inputType = "checkbox";
+    case "integer": inputType = "number";
   }
-}
 
+  str onChange = "onChange_" + q.qId.name + "(this)";
+  HTMLElement inp = input(\type = inputType, id = q.qId.name, onchange = onChange);
 
-str computedQuestion2HTML(str id, AType varType, AExpr expr, str label) {
-  switch (varType) {
-    case \type(integer) : return "    \<computed-question id=\"<id>\" label=<label> v-bind:value=\"<id>\"\>\</computed-question\>\n";
-    case \type(boolean) : return "    \<computed-question id=\"<id>\" label=<label> v-bind:value=\"<id>\"\>\</computed-question\>\n";
-    case \type(string) : return  "    \<computed-question id=\"<id>\" label=<label> v-bind:value=\"<id>\"\>\</computed-question\>\n";
-    default: throw "Unsupported type <varType>";
+  if (questionType == "ComputedQuestion") {
+    inp.disabled = "true";
   }
+  
+  htmlElements += inp;
+  htmlElements += br();
+  return htmlElements;
 }
 
-str generalQuestion2HTML(str id, AType varType, str label) {
-  switch (varType) {
-    case integer(): return "    \<integer  id=\"<id>\" label=<label> v-model=\"<id>\"\>\</integer\>\n";
-    case boolean(): return "    \<boolean id=\"<id>\" label=<label> v-model=\"<id>\"\>\</boolean\>\n";
-    case string(): return "     \<string  id=\"<id>\" label=<label> v-model=\"<id>\"\>\</string\>\n";
-    default: throw "Unsupported type <varType>";
+HTMLElement blockQ2HTML(AExpr expr, list[AQuestion] ifelsePart, str flag) {
+  list[HTMLElement] question_set = [q2html(question) | question <- ifelsePart];
+  HTMLElement divBlock = div(question_set);
+  switch (flag) {
+    case "if": divBlock.id = "if" + convertExprToString(expr);
+    case "else": divBlock.id = "else" + convertExprToString(expr);
   }
+  return divBlock;
 }
 
-str questions2HTML(list[AQuestion] questions){
-  result = "";
-  for (AQuestion question <- questions){
-    switch(question) {
-      case generalQuestion(AId qId, AType qType, str qText):
-        result = result + generalQuestion2HTML(qId, qType, qText);
-      case computedQuestion(AId qId, AType qType, AExpr qExpr, str qText):
-        result = result + computedQuestion2HTML(qId, qType, qExpr, qText);
-      case IfThenElse(AExpr condition, list[AQuestion] ifPart, list[AQuestion] elsePart):
-        result = result + question2HTML(question);
+HTMLElement q2html(AQuestion q) {
+  list[HTMLElement] htmlelements = [];
+  str divId = "";
+  switch(q) {
+    case GeneralQuestion(_, _, _): {
+      htmlelements += stdQ2HTML("GeneralQuestion", q);
+      divId = "div_<q.qId.name>";
+    }
+
+    case ComputedQuestion(_, _, _, _): {
+      htmlelements += stdQ2HTML("ComputedQuestion", q);
+      divId = "div_<q.qId.name>";
+    }
+     
+    case IfThen(AExpr expr, list[AQuestion] ifPart): {
+      htmlelements += blockQ2HTML(expr, ifPart, "if");
+      divId = "IfThenBlock"; 
+    }
+
+    case IfThenElse(AExpr expr, list[AQuestion] ifPart, list[AQuestion] elsePart): {
+      htmlelements += blockQ2HTML(expr, ifPart, "if");
+      htmlelements += blockQ2HTML(expr, elsePart, "else");
+      divId = "IfThenElseBlock";
     }
   }
-  return result;
+  return div(htmlelements, id = divId);
 }
 
-str question2Html(AQuestion q) {
-  result = "";
-  switch(q) {
-    case GeneralQuestion(strg(str label), ref(id(str sid), src = loc u), AType varType, src = loc q):
-      result = result + generalQuestion2HTML(sid, varType, label);
-    case ComputedQuestion(strg(str label), ref(id(str sid), src= loc u), AType varType, AExpr expr, src=loc q):
-      result = result + computedQuestion2HTML(sid, varType, expr, label);
-    case IfThenElse(AExpr condition, list[AQuestion] ifPart, list[AQuestion] elsePart):
-      result = result + "\<div v-if=\"" + expression2str(condition) + "\"\>\n" +
-               questions2HTML(ifPart) +
-               '\</div\>\n' +
-               '\<div v-else\>\n' +
-               questions2HTML(elsePart) +
-               '\</div\>\n";
-    case IfThen(AExpr condition, list[AQuestion] ifPart):
-      result = result + "\<div v-if=\"" + expression2str(condition) + "\"\>\n" +
-               questions2HTML(ifPart) +
-               '\</div\>\n';
-    default : 
-        result = result;
+// JS PART
+
+str default_value(AType qtype) {
+  switch (qtype) {
+    case \type("integer"): return "0";
+    case \type("boolean"): return "false";
+    case \type("string"): return "\"\"";
+    default: return "Unknown Type!";
   }
-  return result;
 }
+
+str parse_value(AType qtype, str code) {
+  switch (qtype) {
+    case \type("integer"): return "parseInt(<code>)";
+    case \type("boolean"): return "<code>";
+    case \type("string"): return  "<code>";
+    default: return "Unknown type!";
+  }
+}
+
+str call_event_handlers(UseDef useDef, AForm f) {
+  str code = "";
+  set[AQuestion] seenQuestions = {};
+  for (<loc use, _> <- useDef) {
+    for (/AQuestion q <- f) {
+      for (/AId id <- q, id.src == use) {
+        if (!(q in seenQuestions)) {
+          if (q is ComputedQuestion) {
+            code += "update_" + q.qId.name + "();\n";
+          } else if (q is IfThen || q is IfThenElse) {
+            code += "update_conditions();\n";
+          }
+          seenQuestions += q;
+        }
+      }
+    }
+  }
+  return code;
+}
+
+str getNormalQS(AForm f) {
+  str code = "";
+  RefGraph refGraph = resolve(f);
+
+  for (/AQuestion q <- f) {
+    if (q is GeneralQuestion) {
+      str inputId = q.qId.name;
+      str funName = "onChange_<inputId>";
+      str varName = inputId;
+      str field = (q.qType.typeName == "boolean") ? "input.checked" : "input.value";
+
+      code += "function <funName>(input) {\n";
+      code += "<varName> = <parse_value(q.qType, field)>;\n";
+      code += call_event_handlers(refGraph.useDef, f);
+      code += "}\n\n";
+    }
+
+    if (q is ComputedQuestion) {
+      str inputId = q.qId.name;
+      str funName = "update_<inputId>";
+      str varName = "input_<inputId>";
+      str field = (q.qType.typeName == "boolean") ? "checked" : "value";
+
+      code += "function <funName>() {\n";
+      code += "let <varName> = document.querySelector(\"#<inputId>\");\n";
+      code += "<varName>.<field> = <convertExprToString(q.qExpr)>;\n";
+      code += "}\n\n";
+    }
+  }
+  return code;
+}
+
+str displayQS(list[AQuestion] questions, bool show) {
+  str code = "";
+  for (/AQuestion q <- questions, q is GeneralQuestion || q is ComputedQuestion) {
+    code += "document.querySelector(\"#div_" + q.qId.name + "\").style.display = \"" + (show ? "block" : "none") + "\";\n";
+  }
+  return code;
+}
+
+str getCondQS(AForm f) {
+  str content = "";
+  content += "function update_conditions() {\n";
+
+  for(/AQuestion q <- f) {
+    if (q is IfThen) {
+      content += "if (<convertExprToString(q.condition)>) {\n";
+      content += displayQS(q.ifPart, true);
+      content += "} else {\n";
+      content += displayQS(q.ifPart, false);
+      content += "}\n";
+    }
+
+    if (q is IfThenElse) {
+      content += "if (<convertExprToString(q.condition)>) {\n";
+      content += displayQS(q.ifPart, true);
+      content += displayQS(q.elsePart, false);
+      content += "} else {\n";
+      content += displayQS(q.ifPart, false);
+      content += displayQS(q.elsePart, true);
+      content += "}\n";
+    }
+  }
+  content += "}\n\n";
+  return content;
+}
+
 str form2js(AForm f) {
-  return "";
+  str code = "";
+  for (/AQuestion q <- f, q is GeneralQuestion) {
+    code += "let " + q.qId.name + " = " + default_value(q.qType) + ";\n";
+  }
+  code += "\n";
+  code += getCondQS(f);
+  code += getNormalQS(f);
+  code += "document.addEventListener(\"DOMContentLoaded\", () =\> update_conditions());";
+  return code;
 }
