@@ -135,7 +135,10 @@ void printFlatForm(AForm flat) {
 
 // COMPILE TEST
 void testcompile() {
-    Tree parsedTree = parse(#start[Form], |project://sle-rug/examples/tax.myql|);
-    AForm f = cst2ast(parsedTree);
-    compile(f);
+    Tree parsedTree1 = parse(#start[Form], |project://sle-rug/examples/tax.myql|);
+    Tree parsedTree2 = parse(#start[Form], |project://sle-rug/examples/binary.myql|);
+    AForm f1 = cst2ast(parsedTree1);
+    AForm f2 = cst2ast(parsedTree2);
+    compile(f1);
+    compile(f2);
 }

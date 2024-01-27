@@ -158,19 +158,31 @@ str parse_value(AType qtype, str code) {
   }
 }
 
-str call_event_handlers(UseDef useDef, AForm f) {
+str eventHandling(Use uses, AForm f, AId qId) {
   str code = "";
-  set[AQuestion] seenQuestions = {};
-  for (<loc use, _> <- useDef) {
-    for (/AQuestion q <- f) {
-      for (/AId id <- q, id.src == use) {
-        if (!(q in seenQuestions)) {
+  bool flag = false;
+  set[str] seenCQS = {};
+  for (<loc use, str name> <- uses) {
+    if (name == qId.name) {
+      for (/AQuestion q <- f) {
+        for (/AId id <- q, id.src == use) {  
           if (q is ComputedQuestion) {
             code += "update_" + q.qId.name + "();\n";
-          } else if (q is IfThen || q is IfThenElse) {
-            code += "update_conditions();\n";
+            seenCQS += q.qId.name;
+          } else {
+            if (!flag) {
+              code += "update_conditions();\n";
+              flag = true;
+            }
+            if (q is IfThen || q is IfThenElse) {
+              for (/AQuestion subQ <- q.ifPart) {
+                if (subQ is ComputedQuestion && !(subQ.qId.name in seenCQS)) {
+                  code += "update_" + subQ.qId.name + "();\n";
+                  seenCQS += subQ.qId.name;
+                }
+              }
+            }
           }
-          seenQuestions += q;
         }
       }
     }
@@ -181,7 +193,7 @@ str call_event_handlers(UseDef useDef, AForm f) {
 str getNormalQS(AForm f) {
   str code = "";
   RefGraph refGraph = resolve(f);
-
+  
   for (/AQuestion q <- f) {
     if (q is GeneralQuestion) {
       str inputId = q.qId.name;
@@ -191,7 +203,7 @@ str getNormalQS(AForm f) {
 
       code += "function <funName>(input) {\n";
       code += "<varName> = <parse_value(q.qType, field)>;\n";
-      code += call_event_handlers(refGraph.useDef, f);
+      code += eventHandling(refGraph.uses, f, q.qId);
       code += "}\n\n";
     }
 
@@ -205,6 +217,7 @@ str getNormalQS(AForm f) {
       code += "let <varName> = document.querySelector(\"#<inputId>\");\n";
       code += "<varName>.<field> = <convertExprToString(q.qExpr)>;\n";
       code += "}\n\n";
+      code += "document.addEventListener(\"DOMContentLoaded\", () =\> <funName>());\n\n";
     }
   }
   return code;
@@ -212,38 +225,37 @@ str getNormalQS(AForm f) {
 
 str displayQS(list[AQuestion] questions, bool show) {
   str code = "";
-  for (/AQuestion q <- questions, q is GeneralQuestion || q is ComputedQuestion) {
-    code += "document.querySelector(\"#div_" + q.qId.name + "\").style.display = \"" + (show ? "block" : "none") + "\";\n";
+  for (/AQuestion q <- questions) {
+    if (q is GeneralQuestion || q is ComputedQuestion) {
+      code += "document.querySelector(\"#div_" + q.qId.name + "\").style.display = \"" + (show ? "block" : "none") + "\";\n";
+    } else {
+      code += getCondQS(q);
+    }
   }
   return code;
 }
 
-str getCondQS(AForm f) {
-  str content = "";
-  content += "function update_conditions() {\n";
-
-  for(/AQuestion q <- f) {
-    if (q is IfThen) {
-      content += "if (<convertExprToString(q.condition)>) {\n";
-      content += displayQS(q.ifPart, true);
-      content += "} else {\n";
-      content += displayQS(q.ifPart, false);
-      content += "}\n";
-    }
-
-    if (q is IfThenElse) {
-      content += "if (<convertExprToString(q.condition)>) {\n";
-      content += displayQS(q.ifPart, true);
-      content += displayQS(q.elsePart, false);
-      content += "} else {\n";
-      content += displayQS(q.ifPart, false);
-      content += displayQS(q.elsePart, true);
-      content += "}\n";
-    }
+str getCondQS(AQuestion q) {
+  str code = "";
+  seenQS += q;
+  if (q is IfThen) {
+    code += "if (<convertExprToString(q.condition)>) {\n";
+    code += displayQS(q.ifPart, true);
+    code += "} else {\n";
+    code += displayQS(q.ifPart, false);
+    code += "}\n";
   }
-  content += "}\n\n";
-  return content;
+  if (q is IfThenElse) {
+    code += "if (<convertExprToString(q.condition)>) {\n";
+    code += displayQS(q.ifPart, true);
+    code += "} else {\n";
+    code += displayQS(q.ifPart, false);
+    code += "}\n";
+  }
+  return code;
 }
+
+set[AQuestion] seenQS = {};
 
 str form2js(AForm f) {
   str code = "";
@@ -251,7 +263,11 @@ str form2js(AForm f) {
     code += "let " + q.qId.name + " = " + default_value(q.qType) + ";\n";
   }
   code += "\n";
-  code += getCondQS(f);
+  code += "function update_conditions() {\n";
+  for (/AQuestion q <- f.questions, (q is IfThen || q is IfThenElse) && !(q in seenQS)) {
+    code += getCondQS(q);
+  }
+  code += "}\n\n";
   code += getNormalQS(f);
   code += "document.addEventListener(\"DOMContentLoaded\", () =\> update_conditions());";
   return code;
