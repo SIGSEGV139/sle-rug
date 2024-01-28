@@ -12,7 +12,7 @@ import IO;
 import vis::Text;
 
 // SYNTAX TEST
-void testsyn() {
+void testsyntax() {
     Tree parsedTree = parse(#start[Form], readFile(|cwd:///examples/binary.myql|));
     println(parsedTree);
 }
@@ -25,9 +25,9 @@ void testast() {
 
 // RESOLVE TEST
 void testresolve() {
-    RefGraph res_a = resolve(form("formName", [ GeneralQuestion( id("hasSoldHouse"), \type("integer"), "cool label1" ), 
-                                                ComputedQuestion( id("hasMaintLoan"), \type("boolean"), add(integer(1), integer(2)), "cool label2") ]));
-    println(res_a);
+    AForm aForm = cst2ast(parse(#start[Form], readFile(|cwd:///examples/binary.myql|)));
+    RefGraph ref = resolve(aForm);
+    println(ref);
 }
 
 // CHECK TEST
@@ -109,7 +109,7 @@ void testtransform() {
 
     Tree parsedTree = parse(#start[Form], readFile(|cwd:///examples/test.myql|));
     hasSoldHouse_loc = |unknown:///|(264,12,<14,6>,<14,18>);
-    start[Form] newForm = rename(parsedTree, hasSoldHouse_loc, "PIZZA", resolve(flat).useDef);
+    start[Form] newForm = rename(parsedTree, hasSoldHouse_loc, "PIZZA", resolve(cst2ast(parsedTree)).useDef);
     println(newForm);
 }
 
